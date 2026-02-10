@@ -2,118 +2,127 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <title>AI Labeling & Crop Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tool Xoay Ảnh Pro (Zoom Edition)</title>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
       rel="stylesheet"
     />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css"
-    />
     <style>
       body {
         font-family: "Segoe UI", sans-serif;
-        background: #1a1a1a;
+        text-align: center;
+        background: #222;
         color: #fff;
-        margin: 0;
-        display: flex;
-        height: 100vh;
-      }
-
-      /* Sidebar cho danh sách nhãn */
-      .sidebar {
-        width: 250px;
-        background: #252526;
         padding: 20px;
-        border-right: 1px solid #333;
-        display: flex;
-        flex-direction: column;
       }
-      .label-btn {
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
         background: #333;
-        color: white;
-        border: none;
-        padding: 12px;
-        margin-bottom: 8px;
-        border-radius: 4px;
-        cursor: pointer;
-        text-align: left;
-        transition: 0.2s;
-      }
-      .label-btn:hover {
-        background: #444;
-      }
-      .label-btn span {
-        float: right;
-        color: #888;
-        font-size: 0.8em;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
       }
 
-      /* Vùng làm việc chính */
-      .main-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        padding: 20px;
+      /* Wrapper chứa ảnh: Thêm overflow hidden để ảnh zoom không bị tràn ra ngoài khung */
+      .image-wrapper {
         position: relative;
-      }
-      .image-area {
-        flex: 1;
-        background: #000;
-        border-radius: 8px;
-        overflow: hidden;
+        height: 500px;
+        background-color: #111;
         display: flex;
         align-items: center;
         justify-content: center;
-      }
-      img {
-        max-width: 100%;
-        display: block;
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 20px 0;
+        border: 2px solid #555;
+        cursor: grab; /* Con trỏ hình bàn tay */
       }
 
-      .top-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-      }
-      .filename {
-        color: #ffc107;
-        font-weight: bold;
-        font-size: 1.2em;
+      /* Ảnh: Thêm transition cho transform mượt mà */
+      #currentImage {
+        max-height: 100%;
+        max-width: 100%;
+        transition: transform 0.1s ease-out; /* Nhanh hơn chút để zoom cho mượt */
+        transform-origin: center center;
       }
 
       .controls {
-        margin-top: 15px;
         display: flex;
-        gap: 10px;
         justify-content: center;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
       }
-      .btn {
-        padding: 10px 20px;
-        border-radius: 4px;
-        border: none;
+      button {
+        padding: 12px 20px;
         cursor: pointer;
+        border: none;
+        border-radius: 6px;
         font-weight: bold;
-      }
-      .btn-prev {
-        background: #555;
         color: white;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
       }
-      .btn-next {
-        background: #0078d4;
-        color: white;
+      button:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
       }
 
-      /* Modal khởi đầu tương tự mẫu của bạn */
+      .btn-rotate {
+        background: #17a2b8;
+      }
+      .btn-nav {
+        background: #28a745;
+        width: 140px;
+        justify-content: center;
+      }
+      .btn-dl {
+        background: #ffc107;
+        color: #333;
+        width: 100%;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .btn-delete {
+        background: #dc3545;
+      }
+      .btn-delete:hover {
+        background: #c82333;
+      }
+
+      .status-bar {
+        display: flex;
+        justify-content: space-between;
+        color: #aaa;
+        margin-bottom: 10px;
+      }
+      .filename {
+        font-size: 20px;
+        color: #ffc107;
+        font-weight: bold;
+      }
+      .badge-done {
+        background: #28a745;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 14px;
+        margin-left: 10px;
+        display: none;
+      }
+
+      /* Modal */
       .modal {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.9);
+        background: rgba(0, 0, 0, 0.85);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -123,169 +132,256 @@
         background: white;
         color: #333;
         padding: 30px;
-        border-radius: 8px;
+        border-radius: 10px;
         text-align: center;
+        width: 400px;
+      }
+      .modal-btn {
+        padding: 10px 20px;
+        margin: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+      }
+      .btn-restart {
+        background: #dc3545;
+      }
+      .btn-continue {
+        background: #28a745;
       }
     </style>
   </head>
   <body>
     <div id="welcomeModal" class="modal">
       <div class="modal-content">
-        <h2><i class="fas fa-tag"></i> Tool Gán Nhãn</h2>
-        <p>Ảnh tiếp theo cần xử lý:</p>
-        <h1 id="modalIndex" style="color: #0078d4">...</h1>
-        <button class="btn btn-next" onclick="closeModal(true)">
-          Bắt đầu làm tiếp
-        </button>
-        <button class="btn btn-prev" onclick="closeModal(false)">
-          Làm từ đầu
-        </button>
-      </div>
-    </div>
-
-    <div class="sidebar">
-      <h3><i class="fas fa-tags"></i> Chọn Nhãn (1-8)</h3>
-      {% for label in labels %}
-      <button class="label-btn" onclick="submitLabel('{{ label }}')">
-        {{ loop.index }}. {{ label }}
-      </button>
-      {% endfor %}
-      <hr style="width: 100%; border: 0.5px solid #444; margin: 20px 0" />
-      <p style="font-size: 0.8em; color: #888">
-        * Kéo chuột trên ảnh để chọn vùng cắt. Không kéo nếu muốn lưu cả ảnh.
-      </p>
-    </div>
-
-    <div class="main-content">
-      <div class="top-bar">
+        <h2><i class="fas fa-sync"></i> Trạng thái</h2>
+        <p>Ảnh gần nhất chưa làm xong:</p>
+        <h1 id="modalIndex" style="color: #d63384; margin: 10px 0">...</h1>
         <div>
-          <span class="filename" id="fileNameDisplay">...</span>
-          <span
-            id="statusBadge"
-            style="
-              margin-left: 10px;
-              display: none;
-              background: #28a745;
-              padding: 2px 8px;
-              border-radius: 4px;
-              font-size: 0.8em;
-            "
-            >ĐÃ XONG</span
+          <button class="modal-btn btn-restart" onclick="closeModal(0)">
+            <i class="fas fa-undo"></i> Về đầu
+          </button>
+          <button
+            class="modal-btn btn-continue"
+            onclick="closeModal('continue')"
           >
+            <i class="fas fa-play"></i> Tiếp tục
+          </button>
         </div>
-        <div id="counter">0 / 0</div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="status-bar">
+        <span>[Lăn chuột]: Zoom | [A/D]: Lưu & Chuyển | [Del]: Xóa</span>
+        <span id="counter">0 / 0</span>
       </div>
 
-      <div class="image-area">
-        <img id="imageToCrop" src="" alt="" />
+      <div>
+        <span class="filename" id="fileNameDisplay">...</span>
+        <span id="doneBadge" class="badge-done"
+          ><i class="fas fa-check"></i> ĐÃ XONG</span
+        >
+      </div>
+
+      <div
+        class="image-wrapper"
+        id="imageContainer"
+        onwheel="handleZoom(event)"
+      >
+        <img id="currentImage" src="" alt="Đang tải..." />
       </div>
 
       <div class="controls">
-        <button class="btn btn-prev" onclick="move(-1)">
-          <i class="fas fa-chevron-left"></i> Trước
+        <button class="btn-nav" onclick="autoSaveAndMove(-1)">
+          <i class="fas fa-arrow-left"></i> Lưu & Về (A)
         </button>
-        <button class="btn btn-next" onclick="move(1)">
-          Tiếp theo <i class="fas fa-chevron-right"></i>
+
+        <button class="btn-rotate" onclick="rotate(-90)">
+          <i class="fas fa-undo"></i> Trái
+        </button>
+
+        <button class="btn-delete" onclick="deleteCurrent()">
+          <i class="fas fa-trash"></i> Xóa (Del)
+        </button>
+
+        <button class="btn-rotate" onclick="rotate(90)">
+          Phải <i class="fas fa-redo"></i>
+        </button>
+
+        <button class="btn-nav" onclick="autoSaveAndMove(1)">
+          Lưu & Sau (D) <i class="fas fa-arrow-right"></i>
         </button>
       </div>
+
+      <button onclick="window.location.href = '/download-all'" class="btn-dl">
+        <i class="fas fa-file-archive"></i> Tải xuống tất cả (.zip)
+      </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
       let images = {{ images | tojson }};
-      let processedFiles = new Set({{ processed_files | tojson }});
-      let currentIndex = 0;
-      let cropper = null;
+      const suggestedIndex = {{ start_at }};
+      const processedFiles = new Set({{ processed_files | tojson }});
 
-      // Khởi tạo Modal
+      let currentIndex = 0;
+
+      // Hai biến quan trọng để quản lý hiển thị
+      let currentVisualRotation = 0; // Góc xoay
+      let currentScale = 1;          // Độ phóng to (1 = 100%)
+
+      // --- KHỞI TẠO ---
       document.addEventListener("DOMContentLoaded", () => {
-          document.getElementById('modalIndex').innerText = {{ start_at }} + 1;
+          const modalIndex = document.getElementById('modalIndex');
+          if (images.length === 0) {
+              modalIndex.innerText = "Trống!";
+              document.querySelector('.btn-continue').style.display = 'none';
+          } else if (suggestedIndex >= images.length) {
+              modalIndex.innerText = "Hết!";
+              document.querySelector('.btn-continue').innerText = "Xem ảnh cuối";
+          } else {
+              modalIndex.innerText = `${suggestedIndex + 1}`;
+          }
       });
 
-      function closeModal(continueMode) {
+      function closeModal(choice) {
           document.getElementById('welcomeModal').style.display = 'none';
-          currentIndex = continueMode ? {{ start_at }} : 0;
-          if (images.length > 0) initImage();
+          if (choice === 'continue') {
+              currentIndex = (suggestedIndex >= images.length && images.length > 0) ? images.length - 1 : suggestedIndex;
+          } else {
+              currentIndex = 0;
+          }
+          if (images.length > 0) loadImage();
       }
 
-      function initImage() {
-          if (currentIndex < 0) currentIndex = 0;
+      // --- XỬ LÝ ẢNH ---
+      function loadImage() {
+          if (images.length === 0) {
+              document.getElementById('imageContainer').innerHTML = "<h3 style='color:gray'>Không còn ảnh nào!</h3>";
+              return;
+          }
+
           if (currentIndex >= images.length) currentIndex = images.length - 1;
+          if (currentIndex < 0) currentIndex = 0;
 
           const filename = images[currentIndex];
-          document.getElementById('fileNameDisplay').innerText = filename;
           document.getElementById('counter').innerText = `${currentIndex + 1} / ${images.length}`;
-          document.getElementById('statusBadge').style.display = processedFiles.has(filename) ? "inline" : "none";
+          document.getElementById('fileNameDisplay').innerText = filename;
 
-          const imgElement = document.getElementById('imageToCrop');
+          const badge = document.getElementById('doneBadge');
+          badge.style.display = processedFiles.has(filename) ? "inline-block" : "none";
 
-          // Hủy cropper cũ nếu có
-          if (cropper) {
-              cropper.destroy();
-          }
+          // RESET TRẠNG THÁI KHI QUA ẢNH MỚI
+          currentVisualRotation = 0;
+          currentScale = 1; // Reset zoom về 100%
+          applyVisualTransform();
 
-          imgElement.src = `/image/${filename}?t=${Date.now()}`;
-
-          // Khởi tạo Cropper sau khi ảnh load
-          imgElement.onload = () => {
-              cropper = new Cropper(imgElement, {
-                  viewMode: 1,
-                  autoCrop: false, // Không tự động hiện khung cắt
-                  dragMode: 'crop'
-              });
-          };
+          document.getElementById('currentImage').src = `/image/${filename}?t=${Date.now()}`;
       }
 
-      function submitLabel(labelName) {
-          const filename = images[currentIndex];
-          let cropData = null;
+      // --- LOGIC XOAY ---
+      function rotate(deg) {
+          currentVisualRotation += deg;
+          applyVisualTransform();
+      }
 
-          // Nếu người dùng có vẽ khung cắt
-          const selection = cropper.getData(true);
-          if (selection.width > 0 && selection.height > 0) {
-              cropData = {
-                  x: selection.x,
-                  y: selection.y,
-                  width: selection.width,
-                  height: selection.height
-              };
+      // --- LOGIC ZOOM (MỚI) ---
+      function handleZoom(event) {
+          event.preventDefault(); // Chặn việc cuộn trang web
+
+          const zoomStep = 0.1; // Mỗi lần lăn chuột thay đổi 10%
+
+          if (event.deltaY < 0) {
+              // Lăn lên -> Phóng to
+              currentScale += zoomStep;
+          } else {
+              // Lăn xuống -> Thu nhỏ
+              currentScale -= zoomStep;
           }
 
-          fetch('/save_label', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({
-                  filename: filename,
-                  label: labelName,
-                  crop_box: cropData
-              })
-          })
-          .then(res => res.json())
-          .then(data => {
-              if (data.status === 'success') {
-                  processedFiles.add(filename);
-                  move(1); // Tự động qua ảnh tiếp theo
-              }
+          // Giới hạn zoom: Min 0.5x, Max 5.0x
+          if (currentScale < 0.5) currentScale = 0.5;
+          if (currentScale > 5.0) currentScale = 5.0;
+
+          applyVisualTransform();
+      }
+
+      // --- HÀM CẬP NHẬT CSS (QUAN TRỌNG) ---
+      // Hàm này kết hợp cả xoay và zoom vào cùng một thuộc tính transform
+      function applyVisualTransform() {
+          const img = document.getElementById('currentImage');
+          if(img) {
+              // Cú pháp: rotate(...) scale(...)
+              img.style.transform = `rotate(${currentVisualRotation}deg) scale(${currentScale})`;
+          }
+      }
+
+      // --- LOGIC LƯU & DI CHUYỂN ---
+      function autoSaveAndMove(direction) {
+          if (images.length === 0) return;
+          const nextIndex = currentIndex + direction;
+
+          if (nextIndex < 0) { alert("Đây là ảnh đầu tiên!"); return; }
+          if (nextIndex >= images.length) { saveCurrent(() => alert("Đã đến ảnh cuối cùng!")); return; }
+
+          saveCurrent(() => {
+              currentIndex = nextIndex;
+              loadImage();
           });
       }
 
-      function move(step) {
-          currentIndex += step;
-          if (currentIndex >= 0 && currentIndex < images.length) {
-              initImage();
-          }
+      function saveCurrent(callback) {
+          const filename = images[currentIndex];
+          const angleToSend = currentVisualRotation % 360;
+
+          fetch('/rotate', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ filename: filename, angle: angleToSend })
+          })
+          .then(res => res.json())
+          .then(data => {
+              processedFiles.add(filename);
+              if (callback) callback();
+          })
+          .catch(err => alert("Lỗi mạng: " + err));
       }
 
-      // Phím tắt bàn phím
+      function deleteCurrent() {
+          if (images.length === 0) return;
+          const filename = images[currentIndex];
+          if (!confirm(`Bạn có chắc muốn XÓA VĨNH VIỄN file: ${filename}?`)) return;
+
+          fetch('/delete', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ filename: filename })
+          })
+          .then(res => res.json())
+          .then(data => {
+              if(data.status === 'success') {
+                  images.splice(currentIndex, 1);
+                  processedFiles.delete(filename);
+                  if (currentIndex >= images.length) currentIndex = Math.max(0, images.length - 1);
+                  loadImage();
+              } else {
+                  alert("Lỗi xóa file: " + data.message);
+              }
+          })
+          .catch(err => alert("Lỗi kết nối: " + err));
+      }
+
       document.addEventListener('keydown', (e) => {
-          // Phím số 1-8 để chọn nhãn
-          if (e.key >= '1' && e.key <= '8') {
-              const labels = ["Person", "Cat", "Dog", "Car", "Motorcycle", "Aircraft", "Flower", "Fruit"];
-              submitLabel(labels[parseInt(e.key) - 1]);
-          }
-          // Mũi tên để di chuyển
-          if (e.key === "ArrowLeft") move(-1);
-          if (e.key === "ArrowRight") move(1);
+          if (document.getElementById('welcomeModal').style.display !== 'none') return;
+
+          if (e.key === "ArrowLeft") rotate(-90);
+          if (e.key === "ArrowRight") rotate(90);
+          if (e.key === "a" || e.key === "A") autoSaveAndMove(-1);
+          if (e.key === "d" || e.key === "D") autoSaveAndMove(1);
+          if (e.key === "Enter") autoSaveAndMove(1);
+          if (e.key === "Delete") deleteCurrent();
       });
     </script>
   </body>
