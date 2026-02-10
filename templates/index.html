@@ -2,8 +2,11 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tool Xoay Ảnh Pro (Zoom Edition)</title>
+    <title>Speed Labeling Tool</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css"
+    />
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
       rel="stylesheet"
@@ -11,378 +14,380 @@
     <style>
       body {
         font-family: "Segoe UI", sans-serif;
-        text-align: center;
-        background: #222;
-        color: #fff;
-        padding: 20px;
-      }
-      .container {
-        max-width: 900px;
-        margin: 0 auto;
-        background: #333;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-      }
-
-      /* Wrapper chứa ảnh: Thêm overflow hidden để ảnh zoom không bị tràn ra ngoài khung */
-      .image-wrapper {
-        position: relative;
-        height: 500px;
-        background-color: #111;
+        background: #121212;
+        color: #ececec;
+        margin: 0;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
+        height: 100vh;
         overflow: hidden;
-        margin: 20px 0;
-        border: 2px solid #555;
-        cursor: grab; /* Con trỏ hình bàn tay */
       }
 
-      /* Ảnh: Thêm transition cho transform mượt mà */
-      #currentImage {
-        max-height: 100%;
-        max-width: 100%;
-        transition: transform 0.1s ease-out; /* Nhanh hơn chút để zoom cho mượt */
-        transform-origin: center center;
-      }
-
-      .controls {
+      /* SIDEBAR */
+      .sidebar {
+        width: 280px;
+        background: #1e1e1e;
+        border-right: 1px solid #333;
         display: flex;
-        justify-content: center;
-        gap: 10px;
-        margin-top: 15px;
-        flex-wrap: wrap;
+        flex-direction: column;
+        padding: 15px;
       }
-      button {
-        padding: 12px 20px;
+      .label-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .label-btn {
+        background: #333;
+        color: #aaa;
+        border: 2px solid transparent;
+        padding: 10px;
+        border-radius: 4px;
         cursor: pointer;
-        border: none;
-        border-radius: 6px;
-        font-weight: bold;
+        text-align: center;
+        font-size: 0.85em;
+        transition: 0.2s;
+      }
+      .label-btn:hover {
+        background: #444;
+      }
+      .label-btn.active {
+        background: #0078d4;
         color: white;
+        border-color: #55aaff;
+        font-weight: bold;
+        box-shadow: 0 0 8px rgba(0, 120, 212, 0.6);
+      }
+
+      /* MAIN AREA */
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #000;
+        position: relative;
+      }
+
+      /* STATUS BAR */
+      .status-bar {
+        height: 40px;
+        background: #111;
+        border-bottom: 1px solid #333;
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 15px;
-      }
-      button:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-      }
-
-      .btn-rotate {
-        background: #17a2b8;
-      }
-      .btn-nav {
-        background: #28a745;
-        width: 140px;
-        justify-content: center;
-      }
-      .btn-dl {
-        background: #ffc107;
-        color: #333;
-        width: 100%;
-        justify-content: center;
-        margin-top: 20px;
-      }
-      .btn-delete {
-        background: #dc3545;
-      }
-      .btn-delete:hover {
-        background: #c82333;
-      }
-
-      .status-bar {
-        display: flex;
         justify-content: space-between;
-        color: #aaa;
-        margin-bottom: 10px;
+        padding: 0 20px;
       }
-      .filename {
-        font-size: 20px;
+      .counter-badge {
+        background: #333;
         color: #ffc107;
+        padding: 5px 15px;
+        border-radius: 20px;
         font-weight: bold;
+        font-size: 0.9em;
       }
-      .badge-done {
-        background: #28a745;
-        color: white;
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-size: 14px;
-        margin-left: 10px;
-        display: none;
+      .filename-display {
+        color: #888;
+        font-size: 0.9em;
       }
 
-      /* Modal */
-      .modal {
-        position: fixed;
+      /* WORKSPACE */
+      .workspace {
+        flex: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #0d0d0d;
+      }
+      #image-wrapper {
+        position: relative;
+        max-width: 100%;
+        max-height: 100%;
+      }
+      #image {
+        max-width: 100%;
+        display: block;
+      }
+
+      /* OVERLAY LỚP PHỦ */
+      #overlay-layer {
+        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.85);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
+        pointer-events: none;
+        z-index: 10;
       }
-      .modal-content {
-        background: white;
-        color: #333;
-        padding: 30px;
-        border-radius: 10px;
-        text-align: center;
-        width: 400px;
+
+      /* KHUNG ĐÃ LƯU */
+      .saved-box {
+        position: absolute;
+        border: 2px solid #28a745;
+        background: rgba(40, 167, 69, 0.1);
+        pointer-events: auto;
       }
-      .modal-btn {
-        padding: 10px 20px;
-        margin: 10px;
-        border: none;
-        border-radius: 5px;
+      .saved-box:hover {
+        background: rgba(220, 53, 69, 0.3);
+        border-color: #dc3545;
         cursor: pointer;
+      }
+      .saved-box span {
+        position: absolute;
+        top: -22px;
+        left: -2px;
+        background: #28a745;
         color: white;
+        padding: 2px 6px;
+        font-size: 12px;
+        border-radius: 3px;
+        white-space: nowrap;
         font-weight: bold;
       }
-      .btn-restart {
+      .saved-box:hover span {
         background: #dc3545;
+        content: "Xóa";
       }
-      .btn-continue {
+
+      /* NAV BAR */
+      .bottom-nav {
+        height: 60px;
+        background: #1e1e1e;
+        border-top: 1px solid #333;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+      }
+      .btn {
+        padding: 10px 20px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        color: white;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn-back {
+        background: #444;
+      }
+      .btn-next {
         background: #28a745;
+        font-size: 16px;
+        padding: 10px 40px;
+      }
+
+      .hint {
+        color: #666;
+        font-size: 0.8em;
+        text-align: center;
       }
     </style>
   </head>
   <body>
-    <div id="welcomeModal" class="modal">
-      <div class="modal-content">
-        <h2><i class="fas fa-sync"></i> Trạng thái</h2>
-        <p>Ảnh gần nhất chưa làm xong:</p>
-        <h1 id="modalIndex" style="color: #d63384; margin: 10px 0">...</h1>
-        <div>
-          <button class="modal-btn btn-restart" onclick="closeModal(0)">
-            <i class="fas fa-undo"></i> Về đầu
-          </button>
-          <button
-            class="modal-btn btn-continue"
-            onclick="closeModal('continue')"
-          >
-            <i class="fas fa-play"></i> Tiếp tục
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="container">
-      <div class="status-bar">
-        <span>[Lăn chuột]: Zoom | [A/D]: Lưu & Chuyển | [Del]: Xóa</span>
-        <span id="counter">0 / 0</span>
-      </div>
-
-      <div>
-        <span class="filename" id="fileNameDisplay">...</span>
-        <span id="doneBadge" class="badge-done"
-          ><i class="fas fa-check"></i> ĐÃ XONG</span
+    <div class="sidebar">
+      <h4 style="margin: 0 0 15px 0; color: #ccc">1. CHỌN NHÃN</h4>
+      <div class="label-grid">
+        {% for label in labels %}
+        <button
+          class="label-btn"
+          id="btn-{{ label }}"
+          onclick="selectLabel('{{ label }}')"
         >
+          {{ loop.index }}. {{ label }}
+        </button>
+        {% endfor %}
       </div>
 
       <div
-        class="image-wrapper"
-        id="imageContainer"
-        onwheel="handleZoom(event)"
+        style="margin-top: auto; border-top: 1px solid #333; padding-top: 10px"
       >
-        <img id="currentImage" src="" alt="Đang tải..." />
+        <p class="hint">Danh sách chờ:</p>
+        <ul
+          id="stagedList"
+          style="
+            padding-left: 20px;
+            color: #aaa;
+            font-size: 0.85em;
+            max-height: 200px;
+            overflow-y: auto;
+          "
+        ></ul>
       </div>
-
-      <div class="controls">
-        <button class="btn-nav" onclick="autoSaveAndMove(-1)">
-          <i class="fas fa-arrow-left"></i> Lưu & Về (A)
-        </button>
-
-        <button class="btn-rotate" onclick="rotate(-90)">
-          <i class="fas fa-undo"></i> Trái
-        </button>
-
-        <button class="btn-delete" onclick="deleteCurrent()">
-          <i class="fas fa-trash"></i> Xóa (Del)
-        </button>
-
-        <button class="btn-rotate" onclick="rotate(90)">
-          Phải <i class="fas fa-redo"></i>
-        </button>
-
-        <button class="btn-nav" onclick="autoSaveAndMove(1)">
-          Lưu & Sau (D) <i class="fas fa-arrow-right"></i>
-        </button>
-      </div>
-
-      <button onclick="window.location.href = '/download-all'" class="btn-dl">
-        <i class="fas fa-file-archive"></i> Tải xuống tất cả (.zip)
-      </button>
     </div>
 
+    <div class="main">
+      <div class="status-bar">
+        <span class="filename-display" id="fileNameDisplay">Loading...</span>
+        <div class="counter-badge" id="counterBadge">0 / 0</div>
+      </div>
+
+      <div class="workspace">
+        <div id="image-wrapper">
+          <img id="image" src="" />
+          <div id="overlay-layer"></div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <button class="btn btn-back" onclick="navigate(-1)">
+          <i class="fas fa-arrow-left"></i> Quay lại
+        </button>
+
+        <div class="hint">
+          Vẽ khung -> Tự động thêm<br />
+          Click khung xanh để xóa
+        </div>
+
+        <button class="btn btn-next" onclick="saveAndNext()">
+          LƯU TẤT CẢ (Enter) <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
-      let images = {{ images | tojson }};
-      const suggestedIndex = {{ start_at }};
-      const processedFiles = new Set({{ processed_files | tojson }});
+      const images = {{ images | tojson }};
+      const labels = {{ labels | tojson }};
+      let currentIndex = {{ last_index }};
+      let activeLabel = labels[0];
+      let stagedItems = [];
+      let cropper = null;
 
-      let currentIndex = 0;
-
-      // Hai biến quan trọng để quản lý hiển thị
-      let currentVisualRotation = 0; // Góc xoay
-      let currentScale = 1;          // Độ phóng to (1 = 100%)
-
-      // --- KHỞI TẠO ---
-      document.addEventListener("DOMContentLoaded", () => {
-          const modalIndex = document.getElementById('modalIndex');
+      function init() {
           if (images.length === 0) {
-              modalIndex.innerText = "Trống!";
-              document.querySelector('.btn-continue').style.display = 'none';
-          } else if (suggestedIndex >= images.length) {
-              modalIndex.innerText = "Hết!";
-              document.querySelector('.btn-continue').innerText = "Xem ảnh cuối";
-          } else {
-              modalIndex.innerText = `${suggestedIndex + 1}`;
-          }
-      });
-
-      function closeModal(choice) {
-          document.getElementById('welcomeModal').style.display = 'none';
-          if (choice === 'continue') {
-              currentIndex = (suggestedIndex >= images.length && images.length > 0) ? images.length - 1 : suggestedIndex;
-          } else {
-              currentIndex = 0;
-          }
-          if (images.length > 0) loadImage();
-      }
-
-      // --- XỬ LÝ ẢNH ---
-      function loadImage() {
-          if (images.length === 0) {
-              document.getElementById('imageContainer').innerHTML = "<h3 style='color:gray'>Không còn ảnh nào!</h3>";
+              document.getElementById('fileNameDisplay').innerText = "Thư mục trống!";
               return;
           }
 
-          if (currentIndex >= images.length) currentIndex = images.length - 1;
-          if (currentIndex < 0) currentIndex = 0;
+          document.getElementById('fileNameDisplay').innerText = images[currentIndex];
+          document.getElementById('counterBadge').innerText = `Ảnh ${currentIndex + 1} / ${images.length}`;
+          selectLabel(activeLabel);
 
-          const filename = images[currentIndex];
-          document.getElementById('counter').innerText = `${currentIndex + 1} / ${images.length}`;
-          document.getElementById('fileNameDisplay').innerText = filename;
+          const img = document.getElementById('image');
+          const overlay = document.getElementById('overlay-layer');
 
-          const badge = document.getElementById('doneBadge');
-          badge.style.display = processedFiles.has(filename) ? "inline-block" : "none";
+          if (cropper) cropper.destroy();
+          overlay.innerHTML = '';
+          stagedItems = [];
+          updateListUI();
 
-          // RESET TRẠNG THÁI KHI QUA ẢNH MỚI
-          currentVisualRotation = 0;
-          currentScale = 1; // Reset zoom về 100%
-          applyVisualTransform();
+          img.src = `/image/${images[currentIndex]}?t=${Date.now()}`;
 
-          document.getElementById('currentImage').src = `/image/${filename}?t=${Date.now()}`;
+          img.onload = () => {
+              cropper = new Cropper(img, {
+                  viewMode: 1,
+                  dragMode: 'crop',
+                  autoCrop: false,
+                  toggleDragModeOnDblclick: false,
+
+                  // SỰ KIỆN QUAN TRỌNG: THẢ CHUỘT LÀ LƯU NGAY
+                  cropend() {
+                      setTimeout(() => {
+                          const data = cropper.getData(true);
+                          const cropBoxData = cropper.getCropBoxData();
+
+                          // Chỉ lưu nếu khung lớn hơn 10px để tránh click nhầm
+                          if (data.width > 10 && data.height > 10) {
+                              addToStaging(data, cropBoxData);
+                              cropper.clear(); // Xóa khung vẽ để vẽ cái mới
+                          }
+                      }, 10);
+                  }
+              });
+          };
       }
 
-      // --- LOGIC XOAY ---
-      function rotate(deg) {
-          currentVisualRotation += deg;
-          applyVisualTransform();
+      function selectLabel(label) {
+          activeLabel = label;
+          document.querySelectorAll('.label-btn').forEach(b => b.classList.remove('active'));
+          document.getElementById(`btn-${label}`).classList.add('active');
       }
 
-      // --- LOGIC ZOOM (MỚI) ---
-      function handleZoom(event) {
-          event.preventDefault(); // Chặn việc cuộn trang web
+      function addToStaging(data, cropBoxData) {
+          const newItem = { label: activeLabel, x: data.x, y: data.y, width: data.width, height: data.height };
+          stagedItems.push(newItem);
 
-          const zoomStep = 0.1; // Mỗi lần lăn chuột thay đổi 10%
+          // Vẽ Visual Box màu xanh
+          const div = document.createElement('div');
+          div.className = 'saved-box';
+          div.innerHTML = `<span>${activeLabel}</span>`;
+          div.style.left = cropBoxData.left + 'px';
+          div.style.top = cropBoxData.top + 'px';
+          div.style.width = cropBoxData.width + 'px';
+          div.style.height = cropBoxData.height + 'px';
 
-          if (event.deltaY < 0) {
-              // Lăn lên -> Phóng to
-              currentScale += zoomStep;
+          // Click vào box để xóa
+          div.onclick = function() {
+              const index = stagedItems.indexOf(newItem);
+              if (index > -1) {
+                  stagedItems.splice(index, 1);
+                  div.remove();
+                  updateListUI();
+              }
+          };
+          document.getElementById('overlay-layer').appendChild(div);
+          updateListUI();
+      }
+
+      function navigate(step) {
+          const newIndex = currentIndex + step;
+          if (newIndex >= 0 && newIndex < images.length) {
+              currentIndex = newIndex;
+              fetch('/update_progress', {
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({ index: currentIndex })
+              });
+              init();
           } else {
-              // Lăn xuống -> Thu nhỏ
-              currentScale -= zoomStep;
-          }
-
-          // Giới hạn zoom: Min 0.5x, Max 5.0x
-          if (currentScale < 0.5) currentScale = 0.5;
-          if (currentScale > 5.0) currentScale = 5.0;
-
-          applyVisualTransform();
-      }
-
-      // --- HÀM CẬP NHẬT CSS (QUAN TRỌNG) ---
-      // Hàm này kết hợp cả xoay và zoom vào cùng một thuộc tính transform
-      function applyVisualTransform() {
-          const img = document.getElementById('currentImage');
-          if(img) {
-              // Cú pháp: rotate(...) scale(...)
-              img.style.transform = `rotate(${currentVisualRotation}deg) scale(${currentScale})`;
+              alert("Hết ảnh rồi!");
           }
       }
 
-      // --- LOGIC LƯU & DI CHUYỂN ---
-      function autoSaveAndMove(direction) {
-          if (images.length === 0) return;
-          const nextIndex = currentIndex + direction;
+      function saveAndNext() {
+          let nextIdx = currentIndex + 1;
+          if (nextIdx >= images.length) nextIdx = 0;
 
-          if (nextIndex < 0) { alert("Đây là ảnh đầu tiên!"); return; }
-          if (nextIndex >= images.length) { saveCurrent(() => alert("Đã đến ảnh cuối cùng!")); return; }
+          if (stagedItems.length === 0) {
+              // Nếu không vẽ gì thì coi như bỏ qua ảnh này
+              navigate(1);
+              return;
+          }
 
-          saveCurrent(() => {
-              currentIndex = nextIndex;
-              loadImage();
+          fetch('/save_all_and_next', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                  filename: images[currentIndex],
+                  items: stagedItems,
+                  next_index: nextIdx
+              })
+          })
+          .then(res => res.json())
+          .then(data => {
+              if (data.status === 'success') {
+                  currentIndex = nextIdx;
+                  init();
+              }
           });
       }
 
-      function saveCurrent(callback) {
-          const filename = images[currentIndex];
-          const angleToSend = currentVisualRotation % 360;
-
-          fetch('/rotate', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ filename: filename, angle: angleToSend })
-          })
-          .then(res => res.json())
-          .then(data => {
-              processedFiles.add(filename);
-              if (callback) callback();
-          })
-          .catch(err => alert("Lỗi mạng: " + err));
-      }
-
-      function deleteCurrent() {
-          if (images.length === 0) return;
-          const filename = images[currentIndex];
-          if (!confirm(`Bạn có chắc muốn XÓA VĨNH VIỄN file: ${filename}?`)) return;
-
-          fetch('/delete', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ filename: filename })
-          })
-          .then(res => res.json())
-          .then(data => {
-              if(data.status === 'success') {
-                  images.splice(currentIndex, 1);
-                  processedFiles.delete(filename);
-                  if (currentIndex >= images.length) currentIndex = Math.max(0, images.length - 1);
-                  loadImage();
-              } else {
-                  alert("Lỗi xóa file: " + data.message);
-              }
-          })
-          .catch(err => alert("Lỗi kết nối: " + err));
+      function updateListUI() {
+          document.getElementById('stagedList').innerHTML = stagedItems.map(item => `<li>${item.label}</li>`).join('');
       }
 
       document.addEventListener('keydown', (e) => {
-          if (document.getElementById('welcomeModal').style.display !== 'none') return;
-
-          if (e.key === "ArrowLeft") rotate(-90);
-          if (e.key === "ArrowRight") rotate(90);
-          if (e.key === "a" || e.key === "A") autoSaveAndMove(-1);
-          if (e.key === "d" || e.key === "D") autoSaveAndMove(1);
-          if (e.key === "Enter") autoSaveAndMove(1);
-          if (e.key === "Delete") deleteCurrent();
+          if (e.key >= '1' && e.key <= '8') selectLabel(labels[parseInt(e.key)-1]);
+          if (e.key === 'Enter') saveAndNext();
+          if (e.key === 'ArrowLeft') navigate(-1);
       });
+
+      init();
     </script>
   </body>
 </html>
